@@ -51,6 +51,10 @@ class TeamPermission(PermissionMixin):
     USE_OCR_QUOTA = 1130
     USE_MT_QUOTA = 1140
     INSIGHT = 1150
+    COORDINATOR = 2000
+    PROOFREADER = 2010
+    TRANSLATOR = 2020
+    PICTURE_EDITOR = 2030
 
     details = {
         # RBAC默认权限介绍
@@ -119,6 +123,22 @@ class TeamPermission(PermissionMixin):
         "INSIGHT": {
             "name": lazy_gettext("查看项目统计"),
             "intro": lazy_gettext("可以查看团队项目统计"),
+        },
+        "COORDINATOR": {
+            "name": lazy_gettext("监理"),
+            "intro": lazy_gettext("自动将本人的相关项目的权限更改为监理"),
+        },
+        "PROOFREADER": {
+            "name": lazy_gettext("校对"),
+            "intro": lazy_gettext("自动将本人的相关项目的权限更改为校对"),
+        },
+        "TRANSLATOR": {
+            "name": lazy_gettext("翻译"),
+            "intro": lazy_gettext("自动将本人的相关项目的权限更改为嵌字"),
+        },
+        "PICTURE_EDITOR": {
+            "name": lazy_gettext("嵌字"),
+            "intro": lazy_gettext("自动将本人的相关项目的权限更改为嵌字"),
         },
     }
 
@@ -212,6 +232,94 @@ class TeamRole(RoleMixin, Document):
             "system_code": "senior",
         },
         {
+            "name": gettext("监理"),
+            "permissions": [
+                TeamPermission.ACCESS,
+                TeamPermission.CREATE_TERM_BANK,
+                TeamPermission.ACCESS_TERM_BANK,
+                TeamPermission.CHANGE_TERM_BANK,
+                TeamPermission.DELETE_TERM_BANK,
+                TeamPermission.CREATE_TERM,
+                TeamPermission.CHANGE_TERM,
+                TeamPermission.DELETE_TERM,
+                TeamPermission.CREATE_PROJECT,
+                TeamPermission.CREATE_PROJECT_SET,
+                TeamPermission.CHANGE_PROJECT_SET,
+                TeamPermission.DELETE_PROJECT_SET,
+                TeamPermission.USE_OCR_QUOTA,
+                TeamPermission.USE_MT_QUOTA,
+                TeamPermission.COORDINATOR,
+            ],
+            "level": 300,
+            "system_code": "coordinator",
+        },
+        {
+            "name": gettext("校对"),
+            "permissions": [
+                TeamPermission.ACCESS,
+                TeamPermission.CREATE_TERM_BANK,
+                TeamPermission.ACCESS_TERM_BANK,
+                TeamPermission.CHANGE_TERM_BANK,
+                TeamPermission.DELETE_TERM_BANK,
+                TeamPermission.CREATE_TERM,
+                TeamPermission.CHANGE_TERM,
+                TeamPermission.DELETE_TERM,
+                TeamPermission.CREATE_PROJECT,
+                TeamPermission.CREATE_PROJECT_SET,
+                TeamPermission.CHANGE_PROJECT_SET,
+                TeamPermission.DELETE_PROJECT_SET,
+                TeamPermission.USE_OCR_QUOTA,
+                TeamPermission.USE_MT_QUOTA,
+                TeamPermission.PROOFREADER,
+            ],
+            "level": 300,
+            "system_code": "proofreader",
+        },
+        {
+            "name": gettext("翻译"),
+            "permissions": [
+                TeamPermission.ACCESS,
+                TeamPermission.CREATE_TERM_BANK,
+                TeamPermission.ACCESS_TERM_BANK,
+                TeamPermission.CHANGE_TERM_BANK,
+                TeamPermission.DELETE_TERM_BANK,
+                TeamPermission.CREATE_TERM,
+                TeamPermission.CHANGE_TERM,
+                TeamPermission.DELETE_TERM,
+                TeamPermission.CREATE_PROJECT,
+                TeamPermission.CREATE_PROJECT_SET,
+                TeamPermission.CHANGE_PROJECT_SET,
+                TeamPermission.DELETE_PROJECT_SET,
+                TeamPermission.USE_OCR_QUOTA,
+                TeamPermission.USE_MT_QUOTA,
+                TeamPermission.TRANSLATOR,
+            ],
+            "level": 300,
+            "system_code": "translator",
+        },
+        {
+            "name": gettext("嵌字"),
+            "permissions": [
+                TeamPermission.ACCESS,
+                TeamPermission.CREATE_TERM_BANK,
+                TeamPermission.ACCESS_TERM_BANK,
+                TeamPermission.CHANGE_TERM_BANK,
+                TeamPermission.DELETE_TERM_BANK,
+                TeamPermission.CREATE_TERM,
+                TeamPermission.CHANGE_TERM,
+                TeamPermission.DELETE_TERM,
+                TeamPermission.CREATE_PROJECT,
+                TeamPermission.CREATE_PROJECT_SET,
+                TeamPermission.CHANGE_PROJECT_SET,
+                TeamPermission.DELETE_PROJECT_SET,
+                TeamPermission.USE_OCR_QUOTA,
+                TeamPermission.USE_MT_QUOTA,
+                TeamPermission.PICTURE_EDITOR,
+            ],
+            "level": 300,
+            "system_code": "picture_editor",
+        },
+        {
             "name": gettext("成员"),
             "permissions": [
                 TeamPermission.ACCESS,
@@ -242,6 +350,14 @@ class TeamRole(RoleMixin, Document):
         # 如果有AUTO_BECOME_PROJECT_ADMIN权限，则返回项目管理员权限
         if self.has_permission(self.permission_cls.AUTO_BECOME_PROJECT_ADMIN):
             return ProjectRole.by_system_code("admin")
+        if self.has_permission(self.permission_cls.COORDINATOR):
+            return ProjectRole.by_system_code("coordinator")
+        if self.has_permission(self.permission_cls.PROOFREADER):
+            return ProjectRole.by_system_code("proofreader")
+        if self.has_permission(self.permission_cls.TRANSLATOR):
+            return ProjectRole.by_system_code("translator")
+        if self.has_permission(self.permission_cls.PICTURE_EDITOR):
+            return ProjectRole.by_system_code("picture_editor")
 
 
 class Team(GroupMixin, Document):
@@ -249,12 +365,14 @@ class Team(GroupMixin, Document):
     _avatar = StringField(db_field="a", default="")  # 头像
     intro = StringField(db_field="i", default="")  # 团队介绍
     default_role_system_code = "beginner"
-    default_role = ReferenceField("TeamRole", db_field="dr", reverse_delete_rule=DENY)
+    default_role = ReferenceField(
+        "TeamRole", db_field="dr", reverse_delete_rule=DENY)
     max_user = IntField(db_field="u", required=True, default=100000)  # 人数限制
     # OCR限额
     ocr_quota_month = IntField(db_field="om", default=0)  # 每月限额
     ocr_quota_used = IntField(db_field="ou", default=0)  # 当月已用限额，每月1号0点清零
-    ocr_quota_google_used = IntField(db_field="og", default=0)  # 谷歌 VISION 解析的张数
+    ocr_quota_google_used = IntField(
+        db_field="og", default=0)  # 谷歌 VISION 解析的张数
     ocr_quota_with_end_time = IntField(db_field="ot", default=0)  # （弃用）有时限的限额
     ocr_quota_end_time = DateTimeField(db_field="ol")  # （弃用）
     # 各种相关类

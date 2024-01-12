@@ -253,7 +253,8 @@ class User(Document):
         :param word: 模糊搜索词
         :return:
         """
-        my_teams = TeamUserRelation.objects(user=self).scalar("group").no_dereference()
+        my_teams = TeamUserRelation.objects(
+            user=self).scalar("group").no_dereference()
         if role:
             if isinstance(role, list):
                 my_teams = my_teams.filter(role__in=role)
@@ -304,7 +305,8 @@ class User(Document):
         :param word: 模糊搜索词
         """
         relational_projects = (
-            ProjectUserRelation.objects(user=self).scalar("group").no_dereference()
+            ProjectUserRelation.objects(user=self).scalar(
+                "group").no_dereference()
         )
         # 过滤角色
         if role:
@@ -335,7 +337,8 @@ class User(Document):
 
     def get_project_relation(self, project):
         """获取与某个项目的关系"""
-        relation = ProjectUserRelation.objects(user=self, group=project).first()
+        relation = ProjectUserRelation.objects(
+            user=self, group=project).first()
         if relation:
             return relation
         return None
@@ -444,11 +447,13 @@ class User(Document):
                 "group": group.to_api(user=self),
             }
         # 已有pending中的申请
-        old_a = self.applications(group=group, status=InvitationStatus.PENDING).first()
+        old_a = self.applications(
+            group=group, status=InvitationStatus.PENDING).first()
         if old_a:
             raise ApplicationAlreadyExistError
         # 有pending中的邀请
-        old_i = self.invitations(group=group, status=InvitationStatus.PENDING).first()
+        old_i = self.invitations(
+            group=group, status=InvitationStatus.PENDING).first()
         if old_i:
             old_i.allow()
             group.reload()
@@ -458,7 +463,8 @@ class User(Document):
             }
         # 是否允许此用户申请
         if group.is_allow_apply(self):
-            application = Application.create(user=self, group=group, message=message)
+            application = Application.create(
+                user=self, group=group, message=message)
         else:
             raise NoPermissionError(gettext("项目不允许申请加入") + "(2)")
         # 目标团体无需审核即可加入
@@ -503,6 +509,13 @@ class User(Document):
         """获取在group中的角色"""
         relation = self.get_relation(group)
         if relation:
+            # 先尝试获取所属团队的转换角色
+            if isinstance(group, Project):
+                team_relation = self.get_relation(group.team)
+                if team_relation:
+                    converted_role = team_relation.role.convert_to_project_role()
+                    if converted_role:
+                        return converted_role
             return relation.role
         else:
             # 如果和项目没有关系，则尝试获取所属团队的转换角色
