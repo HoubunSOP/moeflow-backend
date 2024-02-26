@@ -8,6 +8,10 @@
 
 以docker部署为例，首先您先要下载此仓库(git和下载zip二选一即可)，然后打开服务器中的`docker-compose.yml`，在`moeflow-backend`下的`volumes`添加`./models:/app/app/models`与`./core:/app/app/core`
 
+或者您可以直接将镜像源`${GHCR_DOMAIN}/kozzzx/moeflow-backend:${MOEFLOW_BACKEND_VERSION}`改成`ghcr.io/houbunsop/moeflow-backend:main`
+
+但是这仅限于新系统，如果需要从旧数据库进行操作的话还是需要根据下方进行操作更新数据库
+
 具体如下
 
 ```yaml
